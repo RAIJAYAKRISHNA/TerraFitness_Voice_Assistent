@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terra Fitness Outbound AI Voice Assistant - System Architecture & Requirements</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emeraldBrand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        },
+                        slateWarm: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #fbfbf9;
+            color: #0f172a;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 380px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<!-- Chosen Palette: Warm Neutral Background (#fbfbf9), Slate Dark Neutral (#0f172a), Emerald Accent (#059669) -->
+<!-- Application Structure Plan: Interactive multi-tab architectural presentation covering System Requirements, 4 Engineering Approaches, E2E Data Flow & System Design, Conversation State Machine for Terra Fitness, n8n Automation & Webhook Design, and Latency & Cost Optimization metrics with dynamic Chart.js charts. -->
+<!-- Visualization & Content Choices: Dynamic tab switching via Vanilla JS; Tailwind-styled visual flowcards for pipeline nodes (NO SVG/Mermaid); Chart.js dynamic bar/radar graphs for comparing architecture tradeoffs and latency budgets. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-slateWarm-900 text-white border-b border-slate-800 sticky top-0 z-50">
+        <div
+            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emeraldBrand-500 text-slateWarm-900 font-black text-xl px-3 py-1 rounded-lg">TF</div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight">Terra Fitness Voice AI</h1>
+                    <p class="text-xs text-slate-400">Outbound Form-to-Call System Design Blueprint</p>
+                </div>
+            </div>
+            <nav class="flex flex-wrap gap-1 bg-slate-800/80 p-1 rounded-xl text-xs font-medium">
+                <button onclick="switchTab('req')" id="tab-req"
+                    class="nav-tab px-3 py-2 rounded-lg transition-all bg-emeraldBrand-600 text-white font-semibold">1.
+                    Requirements</button>
+                <button onclick="switchTab('approaches')" id="tab-approaches"
+                    class="nav-tab px-3 py-2 rounded-lg transition-all text-slate-300 hover:text-white hover:bg-slate-700">2.
+                    Architectural Options</button>
+                <button onclick="switchTab('design')" id="tab-design"
+                    class="nav-tab px-3 py-2 rounded-lg transition-all text-slate-300 hover:text-white hover:bg-slate-700">3.
+                    System Design</button>
+                <button onclick="switchTab('statemachine')" id="tab-statemachine"
+                    class="nav-tab px-3 py-2 rounded-lg transition-all text-slate-300 hover:text-white hover:bg-slate-700">4.
+                    Voice Agent Flow</button>
+                <button onclick="switchTab('n8n')" id="tab-n8n"
+                    class="nav-tab px-3 py-2 rounded-lg transition-all text-slate-300 hover:text-white hover:bg-slate-700">5.
+                    Automation & Webhooks</button>
+                <button onclick="switchTab('costlatency')" id="tab-costlatency"
+                    class="nav-tab px-3 py-2 rounded-lg transition-all text-slate-300 hover:text-white hover:bg-slate-700">6.
+                    Cost & Latency</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- SECTION 1: REQUIREMENTS -->
+        <section id="sec-req" class="tab-content space-y-6">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div class="border-b border-slate-100 pb-4 mb-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emeraldBrand-600">Core Blueprint</span>
+                    <h2 class="text-2xl font-extrabold text-slateWarm-900 mt-1">Complete System Requirements Breakdown
+                    </h2>
+                    <p class="text-sm text-slate-600 mt-1">
+                        To automatically trigger a voice assistant call when a prospective member submits a form on
+                        Terra Fitness's website, you need 5 interconnected layers: Lead Capture, Automation
+                        Orchestrator, Voice Platform, Telephony Engine, and CRM/Scheduling.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Req Item 1 -->
+                    <div class="p-5 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="text-xs font-bold text-emeraldBrand-700 bg-emeraldBrand-100 px-2.5 py-1 rounded-full w-max mb-3">
+                            1. Front-End Form & Capture</div>
+                        <h3 class="font-bold text-slateWarm-900 mb-2">Lead Form Requirements</h3>
+                        <ul class="text-xs text-slate-600 space-y-2">
+                            <li><strong class="text-slate-800">• Required Fields:</strong> First Name, Phone Number
+                                (E.164 format check e.g. +1... or +91...), Fitness Goal (Weight loss, Muscle build,
+                                General health).</li>
+                            <li><strong class="text-slate-800">• Legal TCPA Consent Checkbox:</strong> Mandatory opt-in
+                                text: <em>"I consent to receive an immediate automated AI call and SMS from Terra
+                                    Fitness regarding my inquiry."</em></li>
+                            <li><strong class="text-slate-800">• Trigger Method:</strong> Webhook POST request fired on
+                                submission event (Typeform, Webflow, React Form, Meta Ads).</li>
+                        </ul>
+                    </div>
+
+                    <!-- Req Item 2 -->
+                    <div class="p-5 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="text-xs font-bold text-emeraldBrand-700 bg-emeraldBrand-100 px-2.5 py-1 rounded-full w-max mb-3">
+                            2. Automation & Workflow Engine</div>
+                        <h3 class="font-bold text-slateWarm-900 mb-2">Orchestration Software</h3>
+                        <ul class="text-xs text-slate-600 space-y-2">
+                            <li><strong class="text-slate-800">• Middleware:</strong> n8n (Self-hosted or Cloud) or
+                                Make.com.</li>
+                            <li><strong class="text-slate-800">• Phone Validation:</strong> Twilio Lookup API or
+                                libphonenumber to validate cell line vs landline and correct country formatting.</li>
+                            <li><strong class="text-slate-800">• Rate Limiting & DNC:</strong> Redis / DB lookup to
+                                check if the caller was contacted within 24 hours or is on Do-Not-Call list.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Req Item 3 -->
+                    <div class="p-5 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="text-xs font-bold text-emeraldBrand-700 bg-emeraldBrand-100 px-2.5 py-1 rounded-full w-max mb-3">
+                            3. Voice AI & Agent Platform</div>
+                        <h3 class="font-bold text-slateWarm-900 mb-2">Conversational AI Engine</h3>
+                        <ul class="text-xs text-slate-600 space-y-2">
+                            <li><strong class="text-slate-800">• Platform:</strong> Retell AI, Vapi, or Bland AI.</li>
+                            <li><strong class="text-slate-800">• STT (Speech-to-Text):</strong> Deepgram Nova-3
+                                (Sub-150ms transcription latency).</li>
+                            <li><strong class="text-slate-800">• LLM Logic:</strong> GPT-4o-mini or Claude 3.5 Haiku for
+                                fast turn-taking (&lt;400ms TTFT).</li>
+                            <li><strong class="text-slate-800">• TTS (Voice Synth):</strong> ElevenLabs (Turbov2.5) or
+                                Cartesia Sonic (hyper-realistic energetic voice).</li>
+                        </ul>
+                    </div>
+
+                    <!-- Req Item 4 -->
+                    <div class="p-5 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="text-xs font-bold text-emeraldBrand-700 bg-emeraldBrand-100 px-2.5 py-1 rounded-full w-max mb-3">
+                            4. Telephony & Infrastructure</div>
+                        <h3 class="font-bold text-slateWarm-900 mb-2">Outbound Carrier Setup</h3>
+                        <ul class="text-xs text-slate-600 space-y-2">
+                            <li><strong class="text-slate-800">• Phone Numbers:</strong> Twilio, Telnyx, or Retell
+                                Native Phone Numbers with local caller ID.</li>
+                            <li><strong class="text-slate-800">• A2P 10DLC / STIR/SHAKEN:</strong> Verified business
+                                registration to prevent outbound calls from being marked as "Scam Likely".</li>
+                            <li><strong class="text-slate-800">• SIP Trunking:</strong> Direct SIP connection between
+                                Retell/Vapi and Telephony provider.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Req Item 5 -->
+                    <div class="p-5 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="text-xs font-bold text-emeraldBrand-700 bg-emeraldBrand-100 px-2.5 py-1 rounded-full w-max mb-3">
+                            5. CRM & Calendar Integration</div>
+                        <h3 class="font-bold text-slateWarm-900 mb-2">Backend Booking & Storage</h3>
+                        <ul class="text-xs text-slate-600 space-y-2">
+                            <li><strong class="text-slate-800">• Calendar API:</strong> Cal.com API, Calendly API, or
+                                Google Calendar API for live slot lookup and tour booking.</li>
+                            <li><strong class="text-slate-800">• CRM Sync:</strong> HubSpot, GoHighLevel, or PostgreSQL
+                                DB to record call duration, recording URL, transcript, and lead score.</li>
+                            <li><strong class="text-slate-800">• Follow-up Messaging:</strong> Twilio SMS / WhatsApp API
+                                to send tour confirmation link during or after the call.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Req Item 6 -->
+                    <div class="p-5 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="text-xs font-bold text-emeraldBrand-700 bg-emeraldBrand-100 px-2.5 py-1 rounded-full w-max mb-3">
+                            6. Compliance & Safety</div>
+                        <h3 class="font-bold text-slateWarm-900 mb-2">Legal & Operational Guardrails</h3>
+                        <ul class="text-xs text-slate-600 space-y-2">
+                            <li><strong class="text-slate-800">• Calling Hours:</strong> System lock ensuring outbound
+                                calls only fire between 8:00 AM – 8:00 PM in the user's local timezone.</li>
+                            <li><strong class="text-slate-800">• Immediate Disclosure:</strong> AI voice agent must
+                                state in first sentence: <em>"Hi [Name], I'm Terra, an AI assistant for Terra
+                                    Fitness..."</em></li>
+                            <li><strong class="text-slate-800">• Human Fallback:</strong> Live SIP call transfer to
+                                front-desk staff if user requests a human or gets angry.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: ARCHITECTURAL APPROACHES -->
+        <section id="sec-approaches" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div class="border-b border-slate-100 pb-4 mb-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emeraldBrand-600">Technical
+                        Analysis</span>
+                    <h2 class="text-2xl font-extrabold text-slateWarm-900 mt-1">4 Ways to Build Terra Fitness Voice
+                        Assistant</h2>
+                    <p class="text-sm text-slate-600 mt-1">
+                        Here is an engineering assessment comparing managed platforms, low-code frameworks, custom
+                        open-source stacks, and custom WebSockets.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Option 1 -->
+                    <div class="p-5 rounded-xl border-2 border-emeraldBrand-500 bg-emeraldBrand-50/20 relative">
+                        <span
+                            class="absolute top-3 right-3 bg-emeraldBrand-600 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded">RECOMMENDED
+                            FOR PRODUCTION</span>
+                        <h3 class="text-lg font-bold text-slateWarm-900">Approach 1: Managed Voice Orchestrator + n8n +
+                            Cal.com</h3>
+                        <p class="text-xs text-slate-500 mt-0.5 mb-3">Stack: Retell AI / Vapi + n8n + Twilio + Cal.com
+                            API</p>
+                        <div class="space-y-2 text-xs text-slate-700">
+                            <p><strong>How it Works:</strong> Form submission hits n8n webhook. n8n formats phone
+                                number, checks rules, and fires Retell AI Outbound Call API with payload data (Name,
+                                Goal). Retell manages low-latency STT, LLM turn-taking, state machine, and
+                                Cartesia/ElevenLabs TTS. Retell executes tool calls back to n8n for calendar checks and
+                                CRM updates.</p>
+                            <div class="grid grid-cols-2 gap-2 pt-2 text-[11px]">
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="text-emeraldBrand-700 font-bold">Pros:</span>
+                                    <ul class="list-disc list-inside text-slate-600 mt-1">
+                                        <li>Sub-700ms voice latency</li>
+                                        <li>Built-in turn-taking & interruptions</li>
+                                        <li>Fast development (1-2 days)</li>
+                                        <li>Visual flow builder</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="text-rose-600 font-bold">Cons:</span>
+                                    <ul class="list-disc list-inside text-slate-600 mt-1">
+                                        <li>Platform fee (~$0.05-$0.08/min)</li>
+                                        <li>Vendor dependency on orchestrator</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Option 2 -->
+                    <div class="p-5 rounded-xl border border-slate-200 bg-slateWarm-50">
+                        <h3 class="text-lg font-bold text-slateWarm-900">Approach 2: Low-Code Automation Platform Native
+                            (Bland AI + Make)</h3>
+                        <p class="text-xs text-slate-500 mt-0.5 mb-3">Stack: Make.com / n8n + Bland AI Direct API</p>
+                        <div class="space-y-2 text-xs text-slate-700">
+                            <p><strong>How it Works:</strong> Form submits to Make.com workflow. Make sends direct JSON
+                                payload to Bland AI API with a single long prompt containing all rules. Bland AI
+                                directly manages call dispatch and post-call webhooks back to Make for CRM logging.</p>
+                            <div class="grid grid-cols-2 gap-2 pt-2 text-[11px]">
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="text-emeraldBrand-700 font-bold">Pros:</span>
+                                    <ul class="list-disc list-inside text-slate-600 mt-1">
+                                        <li>Simplest workflow setup</li>
+                                        <li>All-in-one telephony + agent API</li>
+                                        <li>Cheap initial testing</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="text-rose-600 font-bold">Cons:</span>
+                                    <ul class="list-disc list-inside text-slate-600 mt-1">
+                                        <li>Higher latency unpredictability</li>
+                                        <li>Harder to control complex multi-step state transitions</li>
+                                        <li>Less granular voice control</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Option 3 -->
+                    <div class="p-5 rounded-xl border border-slate-200 bg-slateWarm-50">
+                        <h3 class="text-lg font-bold text-slateWarm-900">Approach 3: Open-Source Framework (LiveKit
+                            Agents / Pipecat)</h3>
+                        <p class="text-xs text-slate-500 mt-0.5 mb-3">Stack: Python/Node.js Agent Server + LiveKit SIP +
+                            Deepgram + OpenAI + Cartesia</p>
+                        <div class="space-y-2 text-xs text-slate-700">
+                            <p><strong>How it Works:</strong> Host your own LiveKit Voice Agent server in Python or
+                                Node.js. Upon form submission, your server triggers LiveKit SIP outbound trunk to call
+                                the lead's phone number via Twilio/Telnyx, streaming audio over WebSockets to your
+                                custom python pipeline.</p>
+                            <div class="grid grid-cols-2 gap-2 pt-2 text-[11px]">
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="text-emeraldBrand-700 font-bold">Pros:</span>
+                                    <ul class="list-disc list-inside text-slate-600 mt-1">
+                                        <li>Zero vendor markups on voice layer</li>
+                                        <li>100% control over code & memory</li>
+                                        <li>Complete data privacy</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="text-rose-600 font-bold">Cons:</span>
+                                    <ul class="list-disc list-inside text-slate-600 mt-1">
+                                        <li>High dev complexity (WebSockets)</li>
+                                        <li>Must manage GPU/server scaling</li>
+                                        <li>Need custom turn-taking & echo logic</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Option 4 -->
+                    <div class="p-5 rounded-xl border border-slate-200 bg-slateWarm-50">
+                        <h3 class="text-lg font-bold text-slateWarm-900">Approach 4: OpenAI Realtime API + Twilio Media
+                            Streams</h3>
+                        <p class="text-xs text-slate-500 mt-0.5 mb-3">Stack: FastAPI / Node WebSocket Server + OpenAI
+                            GPT-4o Realtime Audio + Twilio</p>
+                        <div class="space-y-2 text-xs text-slate-700">
+                            <p><strong>How it Works:</strong> Twilio places outbound call and opens a Media Stream
+                                WebSocket to your backend. Your backend streams audio directly to OpenAI's
+                                speech-to-speech Realtime API, bypassing separate STT and TTS models.</p>
+                            <div class="grid grid-cols-2 gap-2 pt-2 text-[11px]">
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="text-emeraldBrand-700 font-bold">Pros:</span>
+                                    <ul class="list-disc list-inside text-slate-600 mt-1">
+                                        <li>Ultra-natural human inflection</li>
+                                        <li>Instant laughter, pauses, tone shift</li>
+                                        <li>No STT text error propagation</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="text-rose-600 font-bold">Cons:</span>
+                                    <ul class="list-disc list-inside text-slate-600 mt-1">
+                                        <li>Very high cost (~$0.24–$0.32/min)</li>
+                                        <li>Function calling latency variance</li>
+                                        <li>Strict rate limits</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Chart -->
+                <div class="mt-8 bg-slateWarm-50 p-6 rounded-xl border border-slate-200">
+                    <h4 class="font-bold text-slateWarm-900 text-sm mb-4">Architectural Tradeoff Matrix</h4>
+                    <div class="chart-container">
+                        <canvas id="architectureChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: SYSTEM DESIGN & DATA FLOW -->
+        <section id="sec-design" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div class="border-b border-slate-100 pb-4 mb-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emeraldBrand-600">End-to-End
+                        Pipeline</span>
+                    <h2 class="text-2xl font-extrabold text-slateWarm-900 mt-1">Terra Fitness Outbound System
+                        Architecture Design</h2>
+                    <p class="text-sm text-slate-600 mt-1">
+                        How data and voice streams flow from the user clicking "Submit Form" to live voice interaction
+                        and calendar booking.
+                    </p>
+                </div>
+
+                <!-- Architectural Diagram (HTML Flex/Grid Cards) -->
+                <div class="space-y-4">
+                    <!-- Flow Step 1 -->
+                    <div
+                        class="flex flex-col md:flex-row items-stretch gap-4 p-4 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="md:w-1/4 flex flex-col justify-center items-center bg-white p-3 rounded-lg border border-slate-200 text-center">
+                            <span class="text-[10px] font-black text-emeraldBrand-600 uppercase tracking-widest">STEP
+                                01</span>
+                            <span class="font-bold text-slateWarm-900 text-sm">User Form Submission</span>
+                            <span class="text-[11px] text-slate-500 mt-1">Webflow / Typeform / React</span>
+                        </div>
+                        <div class="hidden md:flex justify-center items-center text-slate-400 font-bold">➔</div>
+                        <div class="md:w-3/4 text-xs text-slate-600 flex flex-col justify-center">
+                            <p><strong class="text-slate-800">Payload Sent:</strong>
+                                <code>{ "first_name": "Alex", "phone": "+14155552671", "fitness_goal": "Weight Loss", "preferred_time": "Evening" }</code>
+                            </p>
+                            <p class="mt-1 text-slate-500">Form triggers an immediate HTTPS POST request to n8n Webhook
+                                endpoint URL with SSL encryption.</p>
+                        </div>
+                    </div>
+
+                    <!-- Flow Step 2 -->
+                    <div
+                        class="flex flex-col md:flex-row items-stretch gap-4 p-4 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="md:w-1/4 flex flex-col justify-center items-center bg-white p-3 rounded-lg border border-slate-200 text-center">
+                            <span class="text-[10px] font-black text-emeraldBrand-600 uppercase tracking-widest">STEP
+                                02</span>
+                            <span class="font-bold text-slateWarm-900 text-sm">n8n Orchestration</span>
+                            <span class="text-[11px] text-slate-500 mt-1">Validation & Pre-Check</span>
+                        </div>
+                        <div class="hidden md:flex justify-center items-center text-slate-400 font-bold">➔</div>
+                        <div class="md:w-3/4 text-xs text-slate-600 flex flex-col justify-center">
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>Validates phone format via E.164 standard.</li>
+                                <li>Queries PostgreSQL DB to ensure no duplicate call occurred within the last 2 hours.
+                                </li>
+                                <li>Checks local time of lead's area code (Must be between 8:00 AM and 8:00 PM).</li>
+                                <li>Formats dynamic variables for the Voice Agent state context.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Flow Step 3 -->
+                    <div
+                        class="flex flex-col md:flex-row items-stretch gap-4 p-4 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="md:w-1/4 flex flex-col justify-center items-center bg-white p-3 rounded-lg border border-slate-200 text-center">
+                            <span class="text-[10px] font-black text-emeraldBrand-600 uppercase tracking-widest">STEP
+                                03</span>
+                            <span class="font-bold text-slateWarm-900 text-sm">Voice AI Trigger</span>
+                            <span class="text-[11px] text-slate-500 mt-1">Retell AI / Vapi API</span>
+                        </div>
+                        <div class="hidden md:flex justify-center items-center text-slate-400 font-bold">➔</div>
+                        <div class="md:w-3/4 text-xs text-slate-600 flex flex-col justify-center">
+                            <p><strong class="text-slate-800">API Request:</strong>
+                                <code>POST https://api.retellai.com/v2/create-phone-call</code></p>
+                            <p class="mt-1 text-slate-500">Passes dynamic agent parameters: <code>user_name</code>,
+                                <code>fitness_goal</code>, <code>gym_location</code>. Retell connects to Twilio SIP to
+                                initiate phone ring within 5-15 seconds of form submit.</p>
+                        </div>
+                    </div>
+
+                    <!-- Flow Step 4 -->
+                    <div
+                        class="flex flex-col md:flex-row items-stretch gap-4 p-4 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="md:w-1/4 flex flex-col justify-center items-center bg-white p-3 rounded-lg border border-slate-200 text-center">
+                            <span class="text-[10px] font-black text-emeraldBrand-600 uppercase tracking-widest">STEP
+                                04</span>
+                            <span class="font-bold text-slateWarm-900 text-sm">Interactive Conversation</span>
+                            <span class="text-[11px] text-slate-500 mt-1">Voice Agent Execution</span>
+                        </div>
+                        <div class="hidden md:flex justify-center items-center text-slate-400 font-bold">➔</div>
+                        <div class="md:w-3/4 text-xs text-slate-600 flex flex-col justify-center">
+                            <p><strong class="text-slate-800">Real-Time Speech Loop:</strong> User Voice ➔ Deepgram STT
+                                (Text) ➔ LLM Prompt/State Decision ➔ Tool Calls (Cal.com query) ➔ Cartesia TTS (Audio) ➔
+                                User Telephony.</p>
+                            <p class="mt-1 text-slate-500">Agent qualifies user goals, answers pricing questions, and
+                                searches for open gym tour timeslots live during speech.</p>
+                        </div>
+                    </div>
+
+                    <!-- Flow Step 5 -->
+                    <div
+                        class="flex flex-col md:flex-row items-stretch gap-4 p-4 rounded-xl bg-slateWarm-50 border border-slate-200">
+                        <div
+                            class="md:w-1/4 flex flex-col justify-center items-center bg-white p-3 rounded-lg border border-slate-200 text-center">
+                            <span class="text-[10px] font-black text-emeraldBrand-600 uppercase tracking-widest">STEP
+                                05</span>
+                            <span class="font-bold text-slateWarm-900 text-sm">Post-Call Automation</span>
+                            <span class="text-[11px] text-slate-500 mt-1">CRM, SMS & Calendar Sync</span>
+                        </div>
+                        <div class="hidden md:flex justify-center items-center text-slate-400 font-bold">➔</div>
+                        <div class="md:w-3/4 text-xs text-slate-600 flex flex-col justify-center">
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>Retell fires post-call webhook with transcript, recording URL, and extracted
+                                    variables (e.g., <code>booked_time: "Tomorrow 5PM"</code>).</li>
+                                <li>n8n creates event in Cal.com / Google Calendar.</li>
+                                <li>n8n sends SMS via Twilio: <em>"Hey Alex! Your Terra Fitness tour is set for tomorrow
+                                        at 5 PM. Here is your directions link..."</em></li>
+                                <li>HubSpot CRM status updated to "Tour Scheduled".</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: CONVERSATION STATE MACHINE -->
+        <section id="sec-statemachine" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div class="border-b border-slate-100 pb-4 mb-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emeraldBrand-600">Voice Conversation
+                        Design</span>
+                    <h2 class="text-2xl font-extrabold text-slateWarm-900 mt-1">Terra Fitness Voice Agent Flow
+                        Architecture</h2>
+                    <p class="text-sm text-slate-600 mt-1">
+                        State machine structure for the AI agent ("Terra") to greet leads, qualify fitness needs, answer
+                        objections, and book gym visits naturally.
+                    </p>
+                </div>
+
+                <!-- State Nodes Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                    <!-- State 1: Welcome Node -->
+                    <div class="p-4 rounded-xl border border-emeraldBrand-200 bg-emeraldBrand-50/40">
+                        <div class="flex justify-between items-center mb-2">
+                            <span
+                                class="text-xs font-bold text-emeraldBrand-700 bg-emeraldBrand-100 px-2 py-0.5 rounded">Node
+                                1: Welcome & Intro</span>
+                        </div>
+                        <h4 class="font-bold text-slateWarm-900 text-sm">Dynamic First Speech</h4>
+                        <p class="text-xs text-slate-600 mt-2 bg-white p-2.5 rounded border border-slate-200 italic">
+                            "Hi {{first_name}}! This is Terra from Terra Fitness. I saw you just filled out our form for
+                            {{fitness_goal}}. Am I catching you at a good time?"
+                        </p>
+                        <div class="mt-3 text-[11px] text-slate-500">
+                            <strong>Transitions:</strong>
+                            <ul class="list-disc list-inside mt-1">
+                                <li>User says Yes / Sure ➔ Go to <strong>Node 2 (Goal Qualification)</strong></li>
+                                <li>User says Busy / Call back ➔ Go to <strong>Node 6 (Reschedule Call)</strong></li>
+                                <li>User asks "Is this AI?" ➔ Acknowledge cheerfully & continue</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- State 2: Goal Qualification -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slateWarm-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-700 bg-slate-200 px-2 py-0.5 rounded">Node 2: Goal
+                                & Experience</span>
+                        </div>
+                        <h4 class="font-bold text-slateWarm-900 text-sm">Qualifying the Prospect</h4>
+                        <p class="text-xs text-slate-600 mt-2 bg-white p-2.5 rounded border border-slate-200 italic">
+                            "Awesome! We love helping people with {{fitness_goal}}. Have you worked with a personal
+                            trainer or belonged to a gym recently?"
+                        </p>
+                        <div class="mt-3 text-[11px] text-slate-500">
+                            <strong>Extract Variables:</strong>
+                            <ul class="list-disc list-inside mt-1">
+                                <li><code>experience_level</code> (Beginner, Intermediate, Advanced)</li>
+                                <li><code>preferred_workout_time</code> (Morning, Evening)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- State 3: Offer & Value Proposition -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slateWarm-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-700 bg-slate-200 px-2 py-0.5 rounded">Node 3: Tour
+                                Offer</span>
+                        </div>
+                        <h4 class="font-bold text-slateWarm-900 text-sm">Free VIP Day Pass Invite</h4>
+                        <p class="text-xs text-slate-600 mt-2 bg-white p-2.5 rounded border border-slate-200 italic">
+                            "We'd love to invite you for a free 1-on-1 VIP gym tour and trial pass. Would you prefer
+                            coming in during the morning or evening?"
+                        </p>
+                        <div class="mt-3 text-[11px] text-slate-500">
+                            <strong>Transitions:</strong>
+                            <ul class="list-disc list-inside mt-1">
+                                <li>User pick time ➔ Go to <strong>Node 4 (Calendar Tool Call)</strong></li>
+                                <li>User asks about Price/Equipment ➔ Go to <strong>Node 5 (FAQ Handler)</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- State 4: Calendar Booking Tool -->
+                    <div class="p-4 rounded-xl border border-amber-200 bg-amber-50/40">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">Node 4:
+                                Function Execution</span>
+                        </div>
+                        <h4 class="font-bold text-slateWarm-900 text-sm">Check & Book Cal.com Slot</h4>
+                        <p class="text-xs text-slate-600 mt-2 bg-white p-2.5 rounded border border-slate-200 italic">
+                            "Let me check our trainer schedule... I have an opening tomorrow at 5:00 PM or Thursday at
+                            10:00 AM. Which works better for you?"
+                        </p>
+                        <div class="mt-3 text-[11px] text-slate-500">
+                            <strong>Tool Call Payload:</strong>
+                            <code
+                                class="block bg-slate-900 text-emerald-400 p-1.5 rounded mt-1">get_available_slots(day="tomorrow")</code>
+                        </div>
+                    </div>
+
+                    <!-- State 5: Objection / FAQ Handling -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slateWarm-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-700 bg-slate-200 px-2 py-0.5 rounded">Node 5:
+                                Pricing & FAQ</span>
+                        </div>
+                        <h4 class="font-bold text-slateWarm-900 text-sm">Objection Handling</h4>
+                        <div
+                            class="text-xs text-slate-600 mt-2 space-y-1.5 bg-white p-2.5 rounded border border-slate-200">
+                            <p><strong>Pricing Question:</strong> "Memberships start at just $49/month with no long-term
+                                contracts, but your trial tour is 100% free!"</p>
+                            <p><strong>Location/Parking:</strong> "We have free dedicated parking behind our facility on
+                                5th avenue."</p>
+                        </div>
+                    </div>
+
+                    <!-- State 6: Closing & Farewell -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slateWarm-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-700 bg-slate-200 px-2 py-0.5 rounded">Node 6:
+                                Confirmation & SMS</span>
+                        </div>
+                        <h4 class="font-bold text-slateWarm-900 text-sm">Wrap Up & Text Send</h4>
+                        <p class="text-xs text-slate-600 mt-2 bg-white p-2.5 rounded border border-slate-200 italic">
+                            "You're all set for tomorrow at 5 PM! I just sent a text message with your pass and
+                            directions. See you soon, {{first_name}}!"
+                        </p>
+                        <div class="mt-3 text-[11px] text-slate-500">
+                            <strong>Action:</strong> Trigger SMS function node & End Call cleanly.
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Voice Prompt Guardrails Box -->
+                <div class="mt-6 p-4 rounded-xl bg-slateWarm-900 text-white text-xs">
+                    <h4 class="font-bold text-emeraldBrand-500 text-sm mb-2">Strict Voice Guardrails for Terra Fitness
+                        Agent</h4>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-300">
+                        <li>• <strong>Max Sentence Rule:</strong> Keep responses under 2 short sentences per turn. Never
+                            monologue.</li>
+                        <li>• <strong>No Text Formatting:</strong> Do NOT output bullet points, markdown bolding,
+                            asterisks, or URLs in spoken speech.</li>
+                        <li>• <strong>Natural Numbers:</strong> Speak dates/times naturally (e.g. "Five PM tomorrow" not
+                            "17:00:00 UTC").</li>
+                        <li>• <strong>Energetic Tone:</strong> Tone must sound enthusiastic, supportive, and active
+                            (Fitness Coach Persona).</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: AUTOMATION WORKFLOW (n8n) -->
+        <section id="sec-n8n" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div class="border-b border-slate-100 pb-4 mb-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emeraldBrand-600">Workflow
+                        Automation</span>
+                    <h2 class="text-2xl font-extrabold text-slateWarm-900 mt-1">n8n Blueprint & Webhook Specifications
+                    </h2>
+                    <p class="text-sm text-slate-600 mt-1">
+                        Detailed breakdown of every node required in the n8n automation pipeline to connect website
+                        forms with Retell AI voice execution.
+                    </p>
+                </div>
+
+                <!-- n8n Node Breakdown Table -->
+                <div class="overflow-x-auto mb-6">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slateWarm-900 text-white">
+                                <th class="p-3 font-semibold rounded-tl-lg">Node Name</th>
+                                <th class="p-3 font-semibold">Node Type</th>
+                                <th class="p-3 font-semibold">Input Data</th>
+                                <th class="p-3 font-semibold">Purpose & Operation</th>
+                                <th class="p-3 font-semibold rounded-tr-lg">Output Payload</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 text-slate-700 bg-slateWarm-50">
+                            <tr>
+                                <td class="p-3 font-bold text-slateWarm-900">1. Form Webhook</td>
+                                <td class="p-3">Webhook Trigger</td>
+                                <td class="p-3">HTTP POST from Form</td>
+                                <td class="p-3">Receives raw lead data upon website form submit event.</td>
+                                <td class="p-3"><code>{ name, phone, goal }</code></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-slateWarm-900">2. Phone Sanitizer</td>
+                                <td class="p-3">Code / JS Node</td>
+                                <td class="p-3">Raw phone string</td>
+                                <td class="p-3">Cleans special characters, validates E.164 country code format (+1...).
+                                </td>
+                                <td class="p-3"><code>{ formatted_phone }</code></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-slateWarm-900">3. Timezone & DNC Check</td>
+                                <td class="p-3">If / Switch Node</td>
+                                <td class="p-3">Area code & Timestamp</td>
+                                <td class="p-3">Ensures lead local time is between 8AM - 8PM and phone isn't in DNC
+                                    list.</td>
+                                <td class="p-3"><code>Boolean (true/false)</code></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-slateWarm-900">4. Trigger Retell Call</td>
+                                <td class="p-3">HTTP Request Node</td>
+                                <td class="p-3">Form parameters + Retell API Key</td>
+                                <td class="p-3">Calls Retell API endpoint <code>/v2/create-phone-call</code> to place
+                                    outbound call.</td>
+                                <td class="p-3"><code>{ call_id, status }</code></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-slateWarm-900">5. Retell Webhook Listener</td>
+                                <td class="p-3">Webhook Trigger</td>
+                                <td class="p-3">Retell Tool / Event POST</td>
+                                <td class="p-3">Listens for in-call function calls (e.g. <code>book_slot</code>) and
+                                    post-call analytics.</td>
+                                <td class="p-3"><code>{ transcript, booked_time }</code></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-slateWarm-900">6. Send Twilio SMS</td>
+                                <td class="p-3">Twilio Node</td>
+                                <td class="p-3">Phone + Confirmation Link</td>
+                                <td class="p-3">Dispatches instant tour confirmation text message to lead's phone.</td>
+                                <td class="p-3"><code>{ sms_id, status }</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- API Payload Snippet -->
+                <div class="bg-slateWarm-900 text-slate-100 rounded-xl p-4 text-xs font-mono">
+                    <div class="text-slate-400 text-[10px] uppercase font-bold tracking-widest mb-2">// Sample n8n HTTP
+                        Node Payload to Trigger Retell Call</div>
+                    <pre class="text-emerald-400 overflow-x-auto">
+{
+  "agent_id": "agent_terra_fitness_prod_9981",
+  "from_number": "+14158009123",
+  "to_number": "={{ $json.formatted_phone }}",
+  "retell_llm_dynamic_variables": {
+    "first_name": "={{ $json.first_name }}",
+    "fitness_goal": "={{ $json.fitness_goal }}",
+    "lead_source": "Website VIP Pass Form"
+  }
+}</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: COST & LATENCY OPTIMIZATION -->
+        <section id="sec-costlatency" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div class="border-b border-slate-100 pb-4 mb-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emeraldBrand-600">Performance
+                        Engineering</span>
+                    <h2 class="text-2xl font-extrabold text-slateWarm-900 mt-1">Latency Budget & Unit Economics</h2>
+                    <p class="text-sm text-slate-600 mt-1">
+                        Voice assistants live or die by latency (delay between user stopping speech and agent speaking)
+                        and operational cost per call.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Latency Stack -->
+                    <div class="bg-slateWarm-50 p-5 rounded-xl border border-slate-200">
+                        <h3 class="font-bold text-slateWarm-900 text-sm mb-3">Turn-Taking Latency Budget (&lt;800ms
+                            Target)</h3>
+                        <div class="space-y-3 text-xs">
+                            <div>
+                                <div class="flex justify-between font-semibold text-slate-700 mb-1">
+                                    <span>STT (Deepgram Nova-3)</span>
+                                    <span>~120ms</span>
+                                </div>
+                                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-emeraldBrand-500 h-full" style="width: 15%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between font-semibold text-slate-700 mb-1">
+                                    <span>LLM Time-To-First-Token (GPT-4o-mini / Haiku)</span>
+                                    <span>~280ms</span>
+                                </div>
+                                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-emeraldBrand-500 h-full" style="width: 35%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between font-semibold text-slate-700 mb-1">
+                                    <span>TTS Audio Synthesis (Cartesia Sonic / ElevenLabs)</span>
+                                    <span>~180ms</span>
+                                </div>
+                                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-emeraldBrand-500 h-full" style="width: 25%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between font-semibold text-slate-700 mb-1">
+                                    <span>Network & Telephony Roundtrip</span>
+                                    <span>~110ms</span>
+                                </div>
+                                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-emeraldBrand-500 h-full" style="width: 15%"></div>
+                                </div>
+                            </div>
+                            <div
+                                class="pt-2 border-t border-slate-300 flex justify-between font-bold text-slateWarm-900">
+                                <span>Total Conversational Delay:</span>
+                                <span class="text-emeraldBrand-600">~690ms (Optimal Voice Human-like)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cost Breakdown Chart -->
+                    <div class="bg-slateWarm-50 p-5 rounded-xl border border-slate-200">
+                        <h3 class="font-bold text-slateWarm-900 text-sm mb-3">Estimated Cost Per Minute Breakdown</h3>
+                        <div class="chart-container">
+                            <canvas id="costChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unit Economics Card -->
+                <div
+                    class="p-5 bg-emeraldBrand-50 rounded-xl border border-emeraldBrand-200 text-xs text-slate-800 space-y-2">
+                    <h4 class="font-bold text-emeraldBrand-900 text-sm">Terra Fitness Voice ROI & Unit Economics</h4>
+                    <p>Assuming an average outbound conversation length of <strong>2.5 minutes</strong>:</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li><strong>Cost Per Lead Called:</strong> ~$0.20 – $0.28 USD total (Telephony + Voice AI
+                            Orchestration + LLM tokens + SMS).</li>
+                        <li><strong>Human Front-Desk Alternative:</strong> $18–$22/hour staffing cost with 15–45 minute
+                            lead response delay.</li>
+                        <li><strong>Conversion Advantage:</strong> Calling form leads within <strong>60 seconds</strong>
+                            yields a <strong>391% higher tour booking rate</strong> compared to calling leads after 30
+                            minutes.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slateWarm-900 text-slate-400 py-6 border-t border-slate-800 text-center text-xs">
+        <p>VoxPilot AI Engineering Blueprint • Designed for Terra Fitness Voice Assistant Implementation</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+            });
+            // Reset nav tab styles
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.classList.remove('bg-emeraldBrand-600', 'text-white', 'font-semibold');
+                btn.classList.add('text-slate-300', 'hover:text-white', 'hover:bg-slate-700');
+            });
+
+            // Show selected tab content
+            const activeSec = document.getElementById('sec-' + tabId);
+            if (activeSec) {
+                activeSec.classList.remove('hidden');
+            }
+
+            // Highlight selected nav button
+            const activeBtn = document.getElementById('tab-' + tabId);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-emeraldBrand-600', 'text-white', 'font-semibold');
+                activeBtn.classList.remove('text-slate-300', 'hover:text-white', 'hover:bg-slate-700');
+            }
+
+            // Render charts if tab is activated
+            if (tabId === 'approaches') {
+                renderArchitectureChart();
+            } else if (tabId === 'costlatency') {
+                renderCostChart();
+            }
+        }
+
+        // Global Chart Instances
+        let archChartInstance = null;
+        let costChartInstance = null;
+
+        function renderArchitectureChart() {
+            const ctx = document.getElementById('architectureChart');
+            if (!ctx) return;
+            if (archChartInstance) {
+                archChartInstance.destroy();
+            }
+
+            archChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['1. Retell/Vapi + n8n', '2. Bland AI + Make', '3. Custom LiveKit Stack', '4. OpenAI Realtime'],
+                    datasets: [
+                        {
+                            label: 'Speed to Deploy (1-10)',
+                            data: [9, 10, 3, 5],
+                            backgroundColor: '#059669',
+                        },
+                        {
+                            label: 'Voice Latency Quality (1-10)',
+                            data: [9, 7, 8, 10],
+                            backgroundColor: '#10b981',
+                        },
+                        {
+                            label: 'Ease of Maintenance (1-10)',
+                            data: [9, 8, 4, 5],
+                            backgroundColor: '#64748b',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10,
+                            ticks: {
+                                font: { size: 10 }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function (value) {
+                                    const label = this.getLabelForValue(value);
+                                    return label.length > 16 ? label.substring(0, 14) + '..' : label;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function (tooltipItems) {
+                                    return tooltipItems[0].label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCostChart() {
+            const ctx = document.getElementById('costChart');
+            if (!ctx) return;
+            if (costChartInstance) {
+                costChartInstance.destroy();
+            }
+
+            costChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Telephony (Twilio SIP)', 'STT (Deepgram Nova)', 'LLM (GPT-4o-mini)', 'TTS (Cartesia/11Labs)', 'Orchestrator Platform'],
+                    datasets: [{
+                        data: [0.015, 0.008, 0.012, 0.035, 0.030],
+                        backgroundColor: [
+                            '#0f172a',
+                            '#047857',
+                            '#10b981',
+                            '#6ee7b7',
+                            '#94a3b8'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, font: { size: 10 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const value = context.raw || 0;
+                                    return ' ' + context.label + ': $' + value.toFixed(3) + '/min';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize on DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Render default view
+            renderArchitectureChart();
+            renderCostChart();
+        });
+    </script>
+</body>
+
+</html>
